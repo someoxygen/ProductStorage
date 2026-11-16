@@ -1,8 +1,11 @@
 ﻿<script setup lang="ts">
+import { t, type MessageKey } from "@/preferences";
+
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import api from "@/api/api";
 import BrandMark from "./BrandMark.vue";
+import PreferenceControls from "./PreferenceControls.vue";
 import AppIcon from "./AppIcon.vue";
 const props = defineProps<{ register?: boolean }>();
 const router = useRouter();
@@ -11,7 +14,7 @@ const email = ref("");
 const password = ref("");
 const visible = ref(false);
 const busy = ref(false);
-const error = ref("");
+const error = ref<MessageKey | "">("");
 async function submit() {
   if (busy.value) return;
   busy.value = true;
@@ -28,9 +31,7 @@ async function submit() {
     localStorage.setItem("token", response.data.token);
     await router.replace("/products");
   } catch {
-    error.value = props.register
-      ? "Hesap oluşturulamadı. Bilgilerinizi kontrol edin; bu e-posta zaten kayıtlı olabilir."
-      : "Giriş yapılamadı. E-posta ve şifrenizi kontrol edip tekrar deneyin.";
+    error.value = props.register ? "registerError" : "loginError";
   } finally {
     busy.value = false;
   }
@@ -41,91 +42,99 @@ async function submit() {
     <section class="auth-story">
       <BrandMark />
       <div class="story-content">
-        <span class="eyebrow">DAHA DÜZENLİ BİR İŞ GÜNÜ</span>
-        <h1>Her ürünün<br />yeri belli.<br /><span>Kontrol sende.</span></h1>
+        <span class="eyebrow"> {{ t("storyEyebrow") }} </span>
+        <h1>
+          {{ t("storyLine1") }} <br />
+          {{ t("storyLine2") }} <br /><span> {{ t("storyAccent") }} </span>
+        </h1>
         <p>
-          Ürünlerini bir araya getir, stoklarını takip et.<br />İşine odaklanmak
-          için kendine alan aç.
+          {{ t("storyIntro") }} <br />
+          {{ t("storyDetail") }}
         </p>
         <div class="stock-illustration" aria-hidden="true">
           <div class="illustration-top">
-            <span class="mini-dots">● ● ●</span><span>rafio / envanter</span>
+            <span class="mini-dots">● ● ●</span
+            ><span> {{ t("illustrationPath") }} </span>
           </div>
           <div class="illustration-body">
             <div class="big-cube"><AppIcon name="box" /></div>
             <div>
-              <span class="illustration-label">HER ŞEY YERLİ YERİNDE</span
-              ><strong>Bir bakışta, tüm stokların.</strong>
+              <span class="illustration-label">
+                {{ t("inPlaceLabel") }} </span><strong>
+                {{ t("atAGlance") }}
+              </strong>
               <div class="decor-bars">
                 <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
               </div>
             </div>
           </div>
           <div class="illustration-bottom">
-            <span><i class="status-dot"></i> Sana özel çalışma alanı</span
+            <span><i class="status-dot"></i> {{ t("privateWorkspace") }} </span
             ><AppIcon name="check" />
           </div>
         </div>
       </div>
       <div class="story-footer">
-        <span>Az karmaşa. Daha çok kontrol.</span
-        ><span>© {{ new Date().getFullYear() }} Rafio</span>
+        <span> {{ t("lessClutter") }} </span><span
+          >© {{ new Date().getFullYear() }} Rafio</span
+        >
       </div>
     </section>
     <section class="auth-form-side">
+      <PreferenceControls class="auth-preferences" />
       <div class="auth-top">
-        {{ register ? "Zaten hesabın var mı?" : "Rafio’da yeni misin?" }}
+        {{ register ? t("haveAccount") : t("newHere") }}
         <RouterLink :to="register ? '/login' : '/register'"
-          >{{ register ? "Giriş yap" : "Hesap oluştur" }} ↗</RouterLink
+          >{{ register ? t("login") : t("createAccount") }} ↗</RouterLink
         >
       </div>
       <div class="auth-form-wrap">
         <div class="section-symbol">
           <AppIcon :name="register ? 'box' : 'shield'" />
         </div>
-        <span class="eyebrow">SENİN ENVANTERİN, SENİN ALANIN</span>
-        <h2>{{ register ? "Düzene ilk adım." : "Tekrar hoş geldin." }}</h2>
+        <span class="eyebrow"> {{ t("yourSpace") }} </span>
+        <h2>{{ register ? t("registerTitle") : t("welcomeBack") }}</h2>
         <p class="muted">
-          {{
-            register
-              ? "Hesabını oluştur, ürünlerine yeni bir yer aç."
-              : "Çalışma alanına giriş yap, kaldığın yerden devam et."
-          }}
+          {{ register ? t("registerIntro") : t("loginIntro") }}
         </p>
         <form @submit.prevent="submit" class="auth-form">
-          <div v-if="error" class="notice error" role="alert">{{ error }}</div>
-          <label v-if="register" class="field"
-            >Ad soyad<input
+          <div v-if="error" class="notice error" role="alert">
+            {{ error ? t(error) : "" }}
+          </div>
+          <label v-if="register" class="field">
+            {{ t("fullName") }}
+            <input
               v-model="fullName"
               autocomplete="name"
-              placeholder="Adınız ve soyadınız"
+              :placeholder="t('fullNamePlaceholder')"
               required
               maxlength="100"
               :disabled="busy"
           /></label>
-          <label class="field"
-            >E-posta adresi<input
+          <label class="field">
+            {{ t("email") }}
+            <input
               v-model="email"
               type="email"
               autocomplete="email"
-              placeholder="ornek@sirket.com"
+              :placeholder="t('emailPlaceholder')"
               required
               :disabled="busy"
           /></label>
-          <label class="field"
-            >Şifre
+          <label class="field">
+            {{ t("password") }}
             <div class="password-field">
               <input
                 v-model="password"
                 :type="visible ? 'text' : 'password'"
                 :autocomplete="register ? 'new-password' : 'current-password'"
-                placeholder="Şifrenizi girin"
+                :placeholder="t('passwordPlaceholder')"
                 required
                 :disabled="busy"
               /><button
                 type="button"
                 class="icon-button"
-                :aria-label="visible ? 'Şifreyi gizle' : 'Şifreyi göster'"
+                :aria-label="visible ? t('hidePassword') : t('showPassword')"
                 :aria-pressed="visible"
                 @click="visible = !visible"
               >
@@ -135,22 +144,18 @@ async function submit() {
           <button class="button primary auth-submit" :disabled="busy">
             {{
               busy
-                ? "Lütfen bekleyin…"
+                ? t("pleaseWait")
                 : register
-                  ? "Hesabımı oluştur"
-                  : "Giriş yap"
+                  ? t("createMyAccount")
+                  : t("login")
             }}<AppIcon v-if="!busy" name="arrow" />
           </button>
         </form>
         <div class="auth-assurance">
-          <AppIcon name="shield" /><span
-            >Ürünlerin yalnızca senin hesabında görünür.</span
-          >
+          <AppIcon name="shield" /><span> {{ t("privacyNote") }} </span>
         </div>
       </div>
-      <div class="auth-bottom">
-        Ürün ve stok yönetimi, olması gerektiği kadar sade.
-      </div>
+      <div class="auth-bottom">{{ t("simpleManagement") }}</div>
     </section>
   </main>
 </template>

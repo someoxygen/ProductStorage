@@ -33,13 +33,3 @@ router.beforeEach((to) => {
 });
 
 export default router;
-
-router.afterEach((to) => {
-  const title =
-    to.path === "/products"
-      ? "Ürünlerim"
-      : to.path === "/register"
-        ? "Hesap oluştur"
-        : "Giriş yap";
-  document.title = `${title} | Rafio — Ürün ve Stok Yönetimi`;
-});

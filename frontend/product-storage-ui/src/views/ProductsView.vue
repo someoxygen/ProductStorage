@@ -1,17 +1,20 @@
 ﻿<script setup lang="ts">
+import { t, locale, type MessageKey } from "@/preferences";
+
 import api from "@/api/api";
 import type { Product } from "@/models/product";
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import PreferenceControls from "@/components/PreferenceControls.vue";
 import BrandMark from "@/components/BrandMark.vue";
 import AppIcon from "@/components/AppIcon.vue";
 const router = useRouter();
 const products = ref<Product[]>([]);
 const loading = ref(true);
 const busy = ref(false);
-const error = ref("");
-const formError = ref("");
-const notice = ref("");
+const error = ref<MessageKey | "">("");
+const formError = ref<MessageKey | "">("");
+const notice = ref<MessageKey | "">("");
 const search = ref("");
 const filter = ref("all");
 const sort = ref("newest");
@@ -29,14 +32,15 @@ const form = reactive({
   createDate: new Date(),
 });
 const money = (value: number) =>
-  new Intl.NumberFormat("tr-TR", {
+  new Intl.NumberFormat(locale.value, {
     style: "currency",
     currency: "TRY",
     maximumFractionDigits: 2,
   }).format(value);
-const number = (value: number) => new Intl.NumberFormat("tr-TR").format(value);
+const number = (value: number) =>
+  new Intl.NumberFormat(locale.value).format(value);
 const date = (value: Date) =>
-  new Date(value).toLocaleDateString("tr-TR", {
+  new Date(value).toLocaleDateString(locale.value, {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -56,13 +60,13 @@ const lowStock = computed(
       .length,
 );
 const filtered = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase("tr-TR");
+  const query = search.value.trim().toLocaleLowerCase(locale.value);
   return products.value
     .filter(
       (p) =>
         (!query ||
           `${p.name} ${p.description}`
-            .toLocaleLowerCase("tr-TR")
+            .toLocaleLowerCase(locale.value)
             .includes(query)) &&
         (filter.value === "all" ||
           (filter.value === "active" && p.isActive) ||
@@ -71,7 +75,7 @@ const filtered = computed(() => {
     )
     .sort((a, b) =>
       sort.value === "name"
-        ? a.name.localeCompare(b.name, "tr")
+        ? a.name.localeCompare(b.name, locale.value)
         : sort.value === "stock"
           ? a.amount - b.amount
           : new Date(b.createDate).getTime() - new Date(a.createDate).getTime(),
@@ -88,8 +92,7 @@ async function getProducts() {
   try {
     products.value = (await api.get<Product[]>("/Products")).data;
   } catch {
-    error.value =
-      "Ürünler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.";
+    error.value = "loadError";
   } finally {
     loading.value = false;
   }
@@ -121,8 +124,7 @@ async function saveProduct() {
     !Number.isInteger(form.amount) ||
     form.amount < 0
   ) {
-    formError.value =
-      "Ürün adı, geçerli bir fiyat ve tam sayı stok miktarı girin.";
+    formError.value = "validationError";
     return;
   }
   busy.value = true;
@@ -133,13 +135,10 @@ async function saveProduct() {
     if (form.id) await api.put(`/Products/${form.id}`, request);
     else await api.post("/Products", request);
     editor.value?.close();
-    notice.value = form.id
-      ? "Ürün bilgileri güncellendi."
-      : "Yeni ürün envanterine eklendi.";
+    notice.value = form.id ? "updated" : "created";
     await getProducts();
   } catch {
-    formError.value =
-      "Ürün kaydedilemedi. Ürün adı daha önce kullanılmış olabilir. Bilgilerinizi kontrol edip tekrar deneyin.";
+    formError.value = "saveError";
   } finally {
     busy.value = false;
   }
@@ -157,10 +156,10 @@ async function deleteProduct() {
   try {
     await api.delete(`/Products/${deleting.value.id}`);
     deleteDialog.value?.close();
-    notice.value = "Ürün silindi.";
+    notice.value = "deleted";
     await getProducts();
   } catch {
-    formError.value = "Ürün silinemedi. Lütfen tekrar deneyin.";
+    formError.value = "deleteError";
   } finally {
     busy.value = false;
   }
@@ -182,13 +181,19 @@ function exportProducts() {
       .replace(/^[=+@\-]/, "'$&")
       .replaceAll('"', '""')}"`;
   const rows = [
-    ["Ürün", "Açıklama", "Birim fiyat (TRY)", "Stok", "Durum"],
+    [
+      t("csvProduct"),
+      t("description"),
+      t("csvPrice"),
+      t("csvStock"),
+      t("csvStatus"),
+    ],
     ...filtered.value.map((p) => [
       p.name,
       p.description,
       p.price,
       p.amount,
-      p.isActive ? "Aktif" : "Pasif",
+      p.isActive ? t("active") : t("inactive"),
     ]),
   ];
   const url = URL.createObjectURL(
@@ -217,58 +222,69 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
       <div class="workspace-label">
         <span class="workspace-avatar">R</span>
         <div>
-          <strong>Kişisel çalışma alanı</strong
-          ><small>Ürün ve stok yönetimi</small>
+          <strong> {{ t("personalWorkspace") }} </strong><small>
+            {{ t("management") }}
+          </small>
         </div>
       </div>
-      <span class="nav-caption">ÇALIŞMA ALANI</span>
-      <nav aria-label="Ana menü">
+      <span class="nav-caption"> {{ t("workspaceLabel") }} </span>
+      <nav :aria-label="t('mainMenu')">
         <RouterLink class="nav-item selected" to="/products"
-          ><AppIcon name="grid" />Ürünlerim<span class="nav-count">{{
-            products.length
-          }}</span></RouterLink
+          ><AppIcon name="grid" /> {{ t("myProducts") }}
+          <span class="nav-count">{{ products.length }}</span></RouterLink
         >
       </nav>
       <div class="sidebar-note">
         <span class="note-icon"><AppIcon name="box" /></span
-        ><strong>Düzen, iyi hissettirir.</strong>
-        <p>Tüm ürünlerin tek bir yerde.<br />Her şey kontrolün altında.</p>
+        ><strong> {{ t("orderFeelsGood") }} </strong>
+        <p>
+          {{ t("allInOnePlace") }} <br />
+          {{ t("underControl") }}
+        </p>
         <div class="note-line"></div>
       </div>
       <div class="sidebar-bottom">
-        <AppIcon name="shield" /><span>Sana özel. Güvenle saklı.</span>
+        <AppIcon name="shield" /><span> {{ t("privateAndSecure") }} </span>
       </div>
     </aside>
     <div class="main-area">
       <header class="topbar">
         <div class="mobile-brand"><BrandMark /></div>
         <div class="breadcrumb">
-          Çalışma alanı <span>/</span><strong>Ürünlerim</strong>
+          {{ t("workspace") }} <span>/</span
+          ><strong> {{ t("myProducts") }} </strong>
         </div>
         <div class="topbar-right">
+          <PreferenceControls />
           <span class="personal-badge"
-            ><i class="status-dot"></i> Kişisel hesap</span
-          ><button class="logout-button" @click="logout">
-            <AppIcon name="logout" /><span>Çıkış yap</span>
+            ><i class="status-dot"></i> {{ t("personalAccount") }} </span
+          ><button
+            class="logout-button"
+            :aria-label="t('logout')"
+            @click="logout"
+          >
+            <AppIcon name="logout" /><span> {{ t("logout") }} </span>
           </button>
         </div>
       </header>
       <main class="dashboard">
         <div class="page-heading">
           <div>
-            <div class="eyebrow">ENVANTERİNE GENEL BAKIŞ</div>
-            <h1>Ürünlerin, bir arada<span class="title-dot">.</span></h1>
-            <p>Stoklarını takip et, ürünlerini düzenle, işine odaklan.</p>
+            <div class="eyebrow">{{ t("overview") }}</div>
+            <h1>
+              {{ t("productsTogether") }} <span class="title-dot">.</span>
+            </h1>
+            <p>{{ t("dashboardIntro") }}</p>
           </div>
           <button class="button primary" @click="openEditor()">
-            <AppIcon name="plus" />Yeni ürün ekle
+            <AppIcon name="plus" /> {{ t("addProduct") }}
           </button>
         </div>
         <div v-if="notice" class="notice success" role="status">
-          <AppIcon name="check" />{{ notice
+          <AppIcon name="check" />{{ notice ? t(notice) : ""
           }}<button
             class="icon-button"
-            aria-label="Bildirimi kapat"
+            :aria-label="t('dismissNotice')"
             @click="notice = ''"
           >
             <AppIcon name="close" />
@@ -277,37 +293,43 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
         <div class="stats-grid">
           <article class="stat-card">
             <div class="stat-label">
-              Toplam ürün<span class="stat-icon"><AppIcon name="box" /></span>
+              {{ t("totalProducts") }}
+              <span class="stat-icon"><AppIcon name="box" /></span>
             </div>
             <strong
               >{{ loading ? "—" : number(products.length)
-              }}<small>ürün</small></strong
-            ><span class="stat-foot">Envanterindeki ürün çeşitleri</span>
+              }}<small> {{ t("productUnit") }} </small></strong
+            ><span class="stat-foot"> {{ t("productTypes") }} </span>
           </article>
           <article class="stat-card">
             <div class="stat-label">
-              Toplam stok<span class="stat-icon"><AppIcon name="chart" /></span>
+              {{ t("totalStock") }}
+              <span class="stat-icon"><AppIcon name="chart" /></span>
             </div>
             <strong
               >{{ loading ? "—" : number(totalUnits)
-              }}<small>adet</small></strong
-            ><span class="stat-foot">Tüm ürünlerin toplam adedi</span>
+              }}<small> {{ t("unit") }} </small></strong
+            ><span class="stat-foot"> {{ t("stockTotalHint") }} </span>
           </article>
           <article class="stat-card value-card">
             <div class="stat-label">
-              Envanter değeri<span class="stat-icon"><span>₺</span></span>
+              {{ t("inventoryValue") }}
+              <span class="stat-icon"><span>₺</span></span>
             </div>
-            <strong>{{ loading ? "—" : money(totalValue) }}</strong
-            ><span class="stat-foot">Birim fiyat × stok miktarı</span>
+            <strong>{{ loading ? "—" : money(totalValue) }}</strong><span
+              class="stat-foot"
+            >
+              {{ t("valueHint") }}
+            </span>
           </article>
           <article class="stat-card">
             <div class="stat-label">
-              Düşük stok<span class="stat-icon amber"
-                ><AppIcon name="clock"
-              /></span>
+              {{ t("lowStock") }}
+              <span class="stat-icon amber"><AppIcon name="clock" /></span>
             </div>
             <strong
-              >{{ loading ? "—" : number(lowStock) }}<small>ürün</small></strong
+              >{{ loading ? "—" : number(lowStock)
+              }}<small> {{ t("productUnit") }} </small></strong
             ><button
               class="stat-link"
               @click="
@@ -315,7 +337,7 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
                 page = 1;
               "
             >
-              5 adet ve altındaki aktif ürünler ↗
+              {{ t("lowStockHint") }}
             </button>
           </article>
         </div>
@@ -323,27 +345,27 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
           <div class="panel-heading">
             <div>
               <h2 id="inventory-title">
-                Ürün listesi
+                {{ t("productList") }}
                 <span class="count-badge">{{ products.length }}</span>
               </h2>
-              <p>Envanterinin tüm detayları burada.</p>
+              <p>{{ t("listIntro") }}</p>
             </div>
             <button
               class="button secondary export-button"
               :disabled="!filtered.length || loading"
               @click="exportProducts"
             >
-              <AppIcon name="download" />Dışa aktar
+              <AppIcon name="download" /> {{ t("export") }}
             </button>
           </div>
           <div class="table-toolbar">
-            <div class="filter-tabs" aria-label="Ürün filtreleri">
+            <div class="filter-tabs" :aria-label="t('productFilters')">
               <button
                 v-for="tab in [
-                  { id: 'all', label: 'Tüm ürünler' },
-                  { id: 'active', label: 'Aktif' },
-                  { id: 'inactive', label: 'Pasif' },
-                  { id: 'low', label: 'Düşük stok' },
+                  { id: 'all', label: t('allProducts') },
+                  { id: 'active', label: t('active') },
+                  { id: 'inactive', label: t('inactive') },
+                  { id: 'low', label: t('lowStock') },
                 ]"
                 :key="tab.id"
                 :class="{ active: filter === tab.id }"
@@ -360,26 +382,30 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
               <label class="search-field"
                 ><AppIcon name="search" /><input
                   v-model="search"
-                  aria-label="Ürün ara"
-                  placeholder="Ürün adı veya açıklama ara…"
+                  :aria-label="t('searchProducts')"
+                  :placeholder="t('searchPlaceholder')"
                   @input="page = 1" /></label
-              ><select v-model="sort" aria-label="Sıralama" @change="page = 1">
-                <option value="newest">En yeni</option>
-                <option value="name">İsim: A–Z</option>
-                <option value="stock">En az stok</option>
+              ><select
+                v-model="sort"
+                :aria-label="t('sorting')"
+                @change="page = 1"
+              >
+                <option value="newest">{{ t("newest") }}</option>
+                <option value="name">{{ t("nameSort") }}</option>
+                <option value="stock">{{ t("stockSort") }}</option>
               </select>
             </div>
           </div>
           <div v-if="loading" class="empty-state" role="status">
             <span class="spinner"></span>
-            <h3>Ürünlerin yükleniyor…</h3>
+            <h3>{{ t("loadingProducts") }}</h3>
           </div>
           <div v-else-if="error" class="empty-state" role="alert">
             <AppIcon name="box" />
-            <h3>Şu an bağlantı kuramadık.</h3>
-            <p>{{ error }}</p>
+            <h3>{{ t("connectionError") }}</h3>
+            <p>{{ error ? t(error) : "" }}</p>
             <button class="button secondary" @click="getProducts">
-              Tekrar dene
+              {{ t("retry") }}
             </button>
           </div>
           <div v-else-if="!filtered.length" class="empty-state">
@@ -387,25 +413,17 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
               <AppIcon :name="products.length ? 'search' : 'box'" />
             </div>
             <h3>
-              {{
-                products.length
-                  ? "Aradığın ürün burada görünmüyor."
-                  : "Yeni bir düzen, ilk ürünle başlar."
-              }}
+              {{ products.length ? t("noResults") : t("emptyTitle") }}
             </h3>
             <p>
-              {{
-                products.length
-                  ? "Farklı bir arama veya filtre deneyebilirsin."
-                  : "İlk ürününü ekle; fiyatını, stok durumunu ve detaylarını tek yerden yönet."
-              }}
+              {{ products.length ? t("noResultsHint") : t("emptyHint") }}
             </p>
             <button
               v-if="!products.length"
               class="button primary"
               @click="openEditor()"
             >
-              <AppIcon name="plus" />İlk ürününü ekle</button
+              <AppIcon name="plus" /> {{ t("addFirst") }}</button
             ><button
               v-else
               class="button secondary"
@@ -414,19 +432,21 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
                 filter = 'all';
               "
             >
-              Filtreleri temizle
+              {{ t("clearFilters") }}
             </button>
           </div>
           <div v-else class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th scope="col">ÜRÜN</th>
-                  <th scope="col">BİRİM FİYAT</th>
-                  <th scope="col">STOK</th>
-                  <th scope="col">DURUM</th>
-                  <th scope="col">EKLENME TARİHİ</th>
-                  <th scope="col" class="align-right">İŞLEMLER</th>
+                  <th scope="col">{{ t("productColumn") }}</th>
+                  <th scope="col">{{ t("priceColumn") }}</th>
+                  <th scope="col">{{ t("stockColumn") }}</th>
+                  <th scope="col">{{ t("statusColumn") }}</th>
+                  <th scope="col">{{ t("createdColumn") }}</th>
+                  <th scope="col" class="align-right">
+                    {{ t("actionsColumn") }}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -440,10 +460,10 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
                         <AppIcon name="box" />
                       </div>
                       <div>
-                        <strong>{{ product.name }}</strong
-                        ><span :title="product.description">{{
-                          product.description || "Açıklama eklenmedi"
-                        }}</span>
+                        <strong>{{ product.name }}</strong><span
+                          :title="product.description"
+                          >{{ product.description || t("noDescription") }}</span
+                        >
                       </div>
                     </div>
                   </td>
@@ -451,14 +471,17 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
                   <td>
                     <span :class="{ 'low-amount': product.amount <= 5 }"
                       >{{ number(product.amount) }}
-                      <span class="muted">adet</span></span
+                      <span class="muted"> {{ t("unit") }} </span></span
                     >
                   </td>
                   <td>
                     <span
                       class="status-badge"
                       :class="product.isActive ? 'is-active' : 'is-inactive'"
-                      ><i></i>{{ product.isActive ? "Aktif" : "Pasif" }}</span
+                      ><i></i
+                      >{{
+                        product.isActive ? t("active") : t("inactive")
+                      }}</span
                     >
                   </td>
                   <td class="date-cell">{{ date(product.createDate) }}</td>
@@ -466,15 +489,15 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
                     <div class="row-actions">
                       <button
                         class="icon-button"
-                        :aria-label="`${product.name} ürününü düzenle`"
-                        title="Düzenle"
+                        :aria-label="t('editNamed', { name: product.name })"
+                        :title="t('edit')"
                         @click="openEditor(product)"
                       >
                         <AppIcon name="edit" /></button
                       ><button
                         class="icon-button danger-icon"
-                        :aria-label="`${product.name} ürününü sil`"
-                        title="Sil"
+                        :aria-label="t('deleteNamed', { name: product.name })"
+                        :title="t('delete')"
                         @click="askDelete(product)"
                       >
                         <AppIcon name="trash" />
@@ -487,24 +510,28 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
           </div>
           <div class="table-footer">
             <span
-              >{{ filtered.length }} ürün<span v-if="filtered.length">
-                · {{ (currentPage - 1) * 8 + 1 }}–{{
-                  Math.min(currentPage * 8, filtered.length)
-                }}
-                arası gösteriliyor</span
+              >{{ t("productCount", { count: number(filtered.length) })
+              }}<span v-if="filtered.length">
+                ·
+                {{
+                  t("showing", {
+                    from: number((currentPage - 1) * 8 + 1),
+                    to: number(Math.min(currentPage * 8, filtered.length)),
+                  })
+                }}</span
               ></span
             >
             <div class="pagination">
               <button
                 :disabled="currentPage === 1"
-                aria-label="Önceki sayfa"
+                :aria-label="t('previousPage')"
                 @click="page = currentPage - 1"
               >
                 ‹</button
               ><span>{{ currentPage }} / {{ pages }}</span
               ><button
                 :disabled="currentPage === pages"
-                aria-label="Sonraki sayfa"
+                :aria-label="t('nextPage')"
                 @click="page = currentPage + 1"
               >
                 ›
@@ -513,8 +540,7 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
           </div>
         </section>
         <footer class="dashboard-footer">
-          <span>Her şey yerli yerinde.</span
-          ><span>Rafio · Ürün ve Stok Yönetimi</span>
+          <span> {{ t("inPlace") }} </span><span> {{ t("footerBrand") }} </span>
         </footer>
       </main>
     </div>
@@ -527,15 +553,15 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
       <form @submit.prevent="saveProduct">
         <div class="modal-header">
           <div>
-            <span class="eyebrow">ENVANTERİNİ DÜZENLE</span>
+            <span class="eyebrow"> {{ t("editInventory") }} </span>
             <h2 id="editor-title">
-              {{ form.id ? "Ürünü düzenle" : "Yeni bir ürün ekle" }}
+              {{ form.id ? t("editProduct") : t("newProduct") }}
             </h2>
           </div>
           <button
             type="button"
             class="icon-button"
-            aria-label="Pencereyi kapat"
+            :aria-label="t('closeDialog')"
             :disabled="busy"
             @click="editor?.close()"
           >
@@ -544,36 +570,39 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
         </div>
         <div class="modal-body">
           <div v-if="formError" class="notice error" role="alert">
-            {{ formError }}
+            {{ formError ? t(formError) : "" }}
           </div>
-          <label class="field"
-            >Ürün adı<input
+          <label class="field">
+            {{ t("productName") }}
+            <input
               v-model="form.name"
-              placeholder="Örn. Seramik kahve fincanı"
+              :placeholder="t('productNamePlaceholder')"
               maxlength="450"
               required
               autofocus
               :disabled="busy" /></label
-          ><label class="field"
-            >Açıklama <span class="optional">İsteğe bağlı</span
-            ><textarea
+          ><label class="field">
+            {{ t("description") }}
+            <span class="optional"> {{ t("optional") }} </span><textarea
               v-model="form.description"
-              placeholder="Ürünle ilgili bilmek istediğin detaylar…"
+              :placeholder="t('descriptionPlaceholder')"
               rows="3"
               :disabled="busy"
             ></textarea>
           </label>
           <div class="form-columns">
-            <label class="field"
-              >Birim fiyat (₺)<input
+            <label class="field">
+              {{ t("unitPrice") }}
+              <input
                 v-model.number="form.price"
                 type="number"
                 min="0"
                 step="0.01"
                 required
                 :disabled="busy" /></label
-            ><label class="field"
-              >Stok miktarı<input
+            ><label class="field">
+              {{ t("stockQuantity") }}
+              <input
                 v-model.number="form.amount"
                 type="number"
                 min="0"
@@ -584,8 +613,8 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
           </div>
           <label class="toggle-field"
             ><span
-              ><strong>Aktif ürün</strong
-              ><small>Bu ürünü aktif envanterinde takip et.</small></span
+              ><strong> {{ t("activeProduct") }} </strong
+              ><small> {{ t("activeHint") }} </small></span
             ><input
               v-model="form.isActive"
               type="checkbox"
@@ -600,11 +629,11 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
             :disabled="busy"
             @click="editor?.close()"
           >
-            Vazgeç</button
-          ><button class="button primary" :disabled="busy">
-            <AppIcon name="check" />{{
-              busy ? "Kaydediliyor…" : "Ürünü kaydet"
-            }}
+            {{ t("cancel") }}</button><button
+            class="button primary"
+            :disabled="busy"
+          >
+            <AppIcon name="check" />{{ busy ? t("saving") : t("saveProduct") }}
           </button>
         </div>
       </form>
@@ -617,13 +646,12 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
     >
       <div class="modal-body">
         <div class="delete-symbol"><AppIcon name="trash" /></div>
-        <h2 id="delete-title">Bu ürünü silmek istiyor musun?</h2>
+        <h2 id="delete-title">{{ t("deleteTitle") }}</h2>
         <p class="muted">
-          <strong>{{ deleting?.name }}</strong> envanterinden kaldırılacak. Bu
-          işlem geri alınamaz.
+          <strong>{{ deleting?.name }}</strong> {{ t("deleteWarning") }}
         </p>
         <div v-if="formError" class="notice error" role="alert">
-          {{ formError }}
+          {{ formError ? t(formError) : "" }}
         </div>
       </div>
       <div class="modal-footer">
@@ -632,9 +660,12 @@ onUnmounted(() => window.removeEventListener("storage", handleSessionChange));
           :disabled="busy"
           @click="deleteDialog?.close()"
         >
-          Vazgeç</button
-        ><button class="button danger" :disabled="busy" @click="deleteProduct">
-          {{ busy ? "Siliniyor…" : "Ürünü sil" }}
+          {{ t("cancel") }}</button><button
+          class="button danger"
+          :disabled="busy"
+          @click="deleteProduct"
+        >
+          {{ busy ? t("deleting") : t("deleteProduct") }}
         </button>
       </div>
     </dialog>
