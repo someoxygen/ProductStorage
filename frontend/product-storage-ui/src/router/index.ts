@@ -1,28 +1,45 @@
-import LoginView from '@/views/LoginView.vue'
-import ProductsView from '@/views/ProductsView.vue'
-import RegisterView from '@/views/RegisterView.vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import LoginView from "@/views/LoginView.vue";
+import ProductsView from "@/views/ProductsView.vue";
+import RegisterView from "@/views/RegisterView.vue";
+import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
-      redirect: '/register',
+      path: "/",
+      redirect: "/products",
     },
     {
-      path: '/register',
-      component: RegisterView
+      path: "/register",
+      component: RegisterView,
     },
     {
       path: "/login",
-      component: LoginView
+      component: LoginView,
     },
     {
       path: "/products",
-      component: ProductsView
-    }
+      component: ProductsView,
+      meta: { requiresAuth: true },
+    },
   ],
-})
+});
 
-export default router
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !localStorage.getItem("token")) {
+    return "/login";
+  }
+});
+
+export default router;
+
+router.afterEach((to) => {
+  const title =
+    to.path === "/products"
+      ? "Ürünlerim"
+      : to.path === "/register"
+        ? "Hesap oluştur"
+        : "Giriş yap";
+  document.title = `${title} | Rafio — Ürün ve Stok Yönetimi`;
+});
