@@ -1,4 +1,3 @@
-﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProductStorageAPI.Abstractions;
 using ProductStorageAPI.Data;
@@ -16,10 +15,10 @@ namespace ProductStorageAPI.Services
             _context = context;
         }
 
-        public async Task<ProductDto> CreateProductAsync(CreateProductDto request, CancellationToken cancellationToken = default)
+        public async Task<ProductDto> CreateProductAsync(int userId, CreateProductDto request, CancellationToken cancellationToken = default)
         {
             var name = request.Name.Trim();
-            var exists = await _context.Products.AnyAsync(x => x.Name == name, cancellationToken);
+            var exists = await _context.Products.AnyAsync(x => x.UserId == userId && x.Name == name, cancellationToken);
             if (exists)
             {
                 throw new InvalidOperationException("Product with this name already exists.");
@@ -27,6 +26,7 @@ namespace ProductStorageAPI.Services
 
             var product = new Product
             {
+                UserId = userId,
                 Name = name,
                 Description = request.Description,
                 Price = request.Price,
@@ -50,9 +50,9 @@ namespace ProductStorageAPI.Services
             };
         }
 
-        public async Task<bool> DeleteProductAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<bool> DeleteProductAsync(int userId, int id, CancellationToken cancellationToken = default)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var product = await _context.Products.FirstOrDefaultAsync(x => x.UserId == userId && x.Id == id, cancellationToken);
             if(product == null)
             {
                 return false;
@@ -63,11 +63,11 @@ namespace ProductStorageAPI.Services
             return true;
         }
 
-        public async Task<ProductDto?> GetProductByIdAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<ProductDto?> GetProductByIdAsync(int userId, int id, CancellationToken cancellationToken = default)
         {
             return await _context.Products
                 .AsNoTracking()
-                .Where(x => x.Id == id)
+                .Where(x => x.UserId == userId && x.Id == id)
                 .Select(x => new ProductDto
                 {
                     Id = x.Id,
@@ -82,9 +82,9 @@ namespace ProductStorageAPI.Services
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<List<ProductDto>> GetProductsAsync(string? search, CancellationToken cancellationToken = default)
+        public async Task<List<ProductDto>> GetProductsAsync(int userId, string? search, CancellationToken cancellationToken = default)
         {
-            var query = _context.Products.AsNoTracking().AsQueryable();
+            var query = _context.Products.AsNoTracking().Where(x => x.UserId == userId);
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(x => EF.Functions.Like(x.Name, $"{search.Trim()}"));
@@ -106,21 +106,22 @@ namespace ProductStorageAPI.Services
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<bool> UpdateProductAsync(int id, UpdateProductDto request, CancellationToken cancellationToken = default)
+        public async Task<bool> UpdateProductAsync(int userId, int id, UpdateProductDto request, CancellationToken cancellationToken = default)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var product = await _context.Products.FirstOrDefaultAsync(x => x.UserId == userId && x.Id == id, cancellationToken);
             if(product == null)
             {
                 return false;
             }
 
-            var existingProduct = await _context.Products.FirstOrDefaultAsync(x => x.Name == request.Name && x.Id != id, cancellationToken);
+            var name = request.Name.Trim();
+            var existingProduct = await _context.Products.FirstOrDefaultAsync(x => x.UserId == userId && x.Name == name && x.Id != id, cancellationToken);
             if(existingProduct != null)
             {
                 throw new InvalidOperationException("Product with this name already exists.");
             }
 
-            product.Name = request.Name;
+            product.Name = name;
             product.Description = request.Description;
             product.Price = request.Price;
             product.Amount = request.Amount;
