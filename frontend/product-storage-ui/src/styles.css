@@ -1520,3 +1520,278 @@ tbody tr:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* Shared appearance controls; available before and after sign-in. */
+:root {
+  color-scheme: light;
+  --surface: #ffffff;
+  --surface-soft: #f4f7ef;
+  --page: #f6f7f4;
+  --text: #233b34;
+  --control-border: #dfe5df;
+}
+.preference-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.language-buttons {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+.language-buttons button {
+  border: 0;
+  border-radius: 5px;
+  padding: 7px 9px;
+  min-height: 30px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.language-buttons button[aria-pressed="true"] {
+  background: var(--green);
+  color: #fff;
+}
+.theme-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+.theme-button:hover {
+  background: var(--surface-soft);
+}
+.auth-preferences {
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+.topbar-right {
+  gap: 16px;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #111c18;
+  --surface: #192720;
+  --surface-soft: #223229;
+  --text: #e5ede2;
+  --muted: #b0bdab;
+  --line: #314135;
+  --control-border: #405043;
+  color: var(--text);
+  background: var(--page);
+}
+[data-theme="dark"] .auth-page,
+[data-theme="dark"] .workspace {
+  background: var(--page);
+}
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .inventory-panel,
+[data-theme="dark"] .modal {
+  background: var(--surface);
+  color: var(--text);
+}
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: #14221b;
+  color: var(--text);
+  border-color: var(--control-border);
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #95a18e;
+}
+[data-theme="dark"] .secondary,
+[data-theme="dark"] .pagination button {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--control-border);
+}
+[data-theme="dark"] .secondary:hover,
+[data-theme="dark"] .icon-button:hover {
+  background: #304434;
+  color: #e0efda;
+}
+[data-theme="dark"] .primary {
+  background: #b9ef91;
+  color: #193b28;
+}
+[data-theme="dark"] .primary:hover {
+  background: #c8f5a8;
+}
+[data-theme="dark"] .language-buttons button[aria-pressed="true"] {
+  background: #b9ef91;
+  color: #193b28;
+}
+[data-theme="dark"] .value-card,
+[data-theme="dark"] .selected,
+[data-theme="dark"] .section-symbol {
+  background: #283d2d;
+  border-color: #3b5039;
+  color: #d6edc6;
+}
+[data-theme="dark"] .workspace-avatar,
+[data-theme="dark"] .nav-count,
+[data-theme="dark"] .count-badge,
+[data-theme="dark"] .stat-icon,
+[data-theme="dark"] .value-card .stat-icon,
+[data-theme="dark"] .empty-icon,
+[data-theme="dark"] .product-avatar {
+  background: #30432e;
+  color: #c3d7af;
+  border-color: #41553d;
+}
+[data-theme="dark"] .sidebar-note,
+[data-theme="dark"] .filter-tabs,
+[data-theme="dark"] .toggle-field,
+[data-theme="dark"] .modal-footer,
+[data-theme="dark"] thead {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+[data-theme="dark"] .filter-tabs button.active {
+  background: #3a4e39;
+  color: #e3efd9;
+}
+[data-theme="dark"] tbody tr:hover {
+  background: #213328;
+}
+[data-theme="dark"] td {
+  border-color: var(--line);
+}
+[data-theme="dark"] .auth-top a,
+[data-theme="dark"] .breadcrumb strong {
+  color: #c7e3b5;
+}
+[data-theme="dark"] .eyebrow,
+[data-theme="dark"] .nav-caption,
+[data-theme="dark"] .workspace-label small,
+[data-theme="dark"] .sidebar-note p,
+[data-theme="dark"] .sidebar-bottom,
+[data-theme="dark"] .breadcrumb,
+[data-theme="dark"] .personal-badge,
+[data-theme="dark"] .logout-button,
+[data-theme="dark"] .page-heading p,
+[data-theme="dark"] .stat-label,
+[data-theme="dark"] .stat-card strong small,
+[data-theme="dark"] .stat-foot,
+[data-theme="dark"] .panel-heading p,
+[data-theme="dark"] .filter-tabs button,
+[data-theme="dark"] th,
+[data-theme="dark"] .product-cell span,
+[data-theme="dark"] .date-cell,
+[data-theme="dark"] .table-footer,
+[data-theme="dark"] .dashboard-footer,
+[data-theme="dark"] .empty-state p,
+[data-theme="dark"] .optional,
+[data-theme="dark"] .toggle-field small,
+[data-theme="dark"] .auth-assurance,
+[data-theme="dark"] .auth-bottom,
+[data-theme="dark"] .icon-button {
+  color: var(--muted);
+}
+[data-theme="dark"] .stat-icon.amber,
+[data-theme="dark"] .tone-2 {
+  background: #413824;
+  color: #dfc58d;
+}
+[data-theme="dark"] .tone-1 {
+  background: #3a3144;
+  color: #d0bddd;
+}
+[data-theme="dark"] .low-amount,
+[data-theme="dark"] .stat-link {
+  color: #d9ba7c;
+}
+[data-theme="dark"] .is-active,
+[data-theme="dark"] .success {
+  background: #2a422a;
+  color: #c3e4ad;
+}
+[data-theme="dark"] .is-inactive {
+  background: #343d34;
+  color: #c2c9ba;
+}
+[data-theme="dark"] .error,
+[data-theme="dark"] .delete-symbol,
+[data-theme="dark"] .danger-icon:hover {
+  background: #482b29;
+  color: #ffb9ac;
+}
+[data-theme="dark"] .toggle-field input {
+  background: #54614b;
+}
+[data-theme="dark"] .toggle-field input:checked {
+  background: #96c37c;
+}
+[data-theme="dark"] .modal::backdrop {
+  background: #020a07b3;
+}
+/* Keep the decorative stock card legible against the evergreen story panel. */
+[data-theme="dark"] .stock-illustration {
+  background: #23392d;
+  color: #e5ede2;
+  border-color: #40563f;
+}
+[data-theme="dark"] .illustration-top,
+[data-theme="dark"] .illustration-bottom {
+  border-color: #40563f;
+  color: #b4c9a6;
+}
+[data-theme="dark"] .illustration-label {
+  color: #b4c9a6;
+}
+[data-theme="dark"] .big-cube {
+  background: #364f33;
+}
+@media (max-width: 1100px) {
+  .topbar .personal-badge {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .topbar-right {
+    gap: 8px;
+  }
+  .auth-preferences {
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .preference-controls {
+    gap: 6px;
+  }
+  .topbar {
+    padding: 0 14px;
+  }
+  .language-buttons button {
+    padding: 7px;
+  }
+  .logout-button {
+    padding-left: 8px;
+  }
+}
+@media (max-width: 370px) {
+  .mobile-brand .brand {
+    gap: 5px;
+    font-size: 24px;
+  }
+  .mobile-brand img {
+    width: 28px;
+    height: 28px;
+  }
+  .topbar {
+    gap: 6px;
+  }
+}
