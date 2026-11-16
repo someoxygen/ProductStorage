@@ -3,6 +3,9 @@
     public class Product
     {
         public int Id { get; set; }
+        // Null only for legacy products whose owner has not been assigned yet.
+        public int? UserId { get; set; }
+        public User? User { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Price { get; set; }

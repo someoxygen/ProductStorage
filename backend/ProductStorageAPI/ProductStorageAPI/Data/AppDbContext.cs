@@ -23,7 +23,11 @@ namespace ProductStorageAPI.Data
                 x.Property(p => p.Name).IsRequired();
                 x.Property(p => p.Price).IsRequired();
                 x.Property(p => p.Amount).IsRequired();
-                x.HasIndex(p => p.Name).IsUnique();
+                x.HasIndex(p => new { p.UserId, p.Name }).IsUnique();
+                x.HasOne(p => p.User)
+                    .WithMany(u => u.Products)
+                    .HasForeignKey(p => p.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<User>(x =>
